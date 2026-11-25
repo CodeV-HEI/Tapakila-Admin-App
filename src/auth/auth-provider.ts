@@ -1,26 +1,26 @@
 import { AuthProvider } from "react-admin";
+import { API_URL } from "../api/api";
 
 export const authProvider: AuthProvider = {
   checkAuth: async function (): Promise<void> {
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      throw new Error("Veuiller connecter");
-    }
+    if (!token) throw new Error("Veuillez vous connecter");
 
-    const response = await fetch("http://localhost:3000/api/admin", {
+    const response = await fetch(`${API_URL}/api/admin`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
 
-    return response.ok ? Promise.resolve() : Promise.reject();
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("accessToken");
+      }
+      throw new Error("Session invalide ou expirée");
+    }
   },
 
-  checkError: async function (error: any): Promise<void> {
-    const { status } = error;
-
+  checkError: async function (error: unknown): Promise<void> {
+    const status = typeof error === "object" && error !== null && "status" in error ? (error as { status?: number }).status : undefined;
     if (status === 401 || status === 403) {
       localStorage.removeItem("accessToken");
       return Promise.reject();
@@ -28,21 +28,21 @@ export const authProvider: AuthProvider = {
     return Promise.resolve();
   },
 
-  login: async function (params: any): Promise<void> {
+  login: async function (params: { email: string; password: string }): Promise<void> {
     const { email, password } = params;
 
-    const loginResult = await fetch("http://localhost:3000/api/admin", {
+    const loginResult = await fetch(`${API_URL}/api/admin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
     if (loginResult.status !== 200) {
-      throw new Error("Erreur d’authentification");
+      const errorData = await loginResult.json().catch(() => ({}));
+      throw new Error(errorData.error || "Erreur d’authentification");
     }
 
     const { accessToken } = await loginResult.json();
-
     localStorage.setItem("accessToken", accessToken);
   },
 

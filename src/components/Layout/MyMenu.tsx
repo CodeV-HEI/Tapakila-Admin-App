@@ -1,5 +1,83 @@
-import { Event, Message, People } from "@mui/icons-material";
+import { Event, Message, People, AdminPanelSettings } from "@mui/icons-material";
 import { Menu } from "react-admin";
+import { useLocation } from "react-router-dom";
+import React from "react";
+
+const CustomMenuItem = ({
+  to,
+  primaryText,
+  leftIcon
+}: {
+  to: string;
+  primaryText: string;
+  leftIcon: React.ReactNode;
+}) => {
+  const location = useLocation();
+  const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
+
+  const activeColor = "#14213D";
+  const inactiveColor = "#ffffff";
+  const currentColor = isActive ? activeColor : inactiveColor;
+
+  return (
+    <Menu.Item
+      to={to}
+      primaryText={primaryText}
+      leftIcon={leftIcon}
+      sx={{
+        background: isActive ? "#FFBA08" : "#0077FF",
+        color: `${currentColor} !important`,
+        margin: "10px 0",
+        fontWeight: "bold",
+        border: isActive ? "2px solid #FFBA08" : "2px solid #0077FF",
+        borderRadius: "10px",
+        padding: "10px 10px",
+        fontFamily: "Poppins",
+        transition: "all 0.3s ease",
+
+        "& .MuiListItemIcon-root": {
+          color: `${currentColor} !important`,
+        },
+
+        "& .MuiListItemText-primary": {
+          color: `${currentColor} !important`,
+          fontFamily: "Poppins",
+          fontWeight: "bold",
+        },
+
+        "&:hover": {
+          background: isActive ? "#FFBA08" : "#005ce6",
+          "& .MuiListItemIcon-root": {
+            color: `${currentColor} !important`,
+          },
+          "& .MuiListItemText-primary": {
+            color: `${currentColor} !important`,
+          },
+        },
+
+        "&.Mui-selected": {
+          background: "#FFBA08",
+          color: `${activeColor} !important`,
+          "& .MuiListItemIcon-root": {
+            color: `${activeColor} !important`,
+          },
+          "& .MuiListItemText-primary": {
+            color: `${activeColor} !important`,
+          },
+          "&:hover": {
+            background: "#FFBA08",
+            "& .MuiListItemIcon-root": {
+              color: `${activeColor} !important`,
+            },
+            "& .MuiListItemText-primary": {
+              color: `${activeColor} !important`,
+            },
+          },
+        },
+      }}
+    />
+  );
+};
 
 export const MyMenu = () => (
   <Menu
@@ -7,57 +85,11 @@ export const MyMenu = () => (
       "& .MuiList-root": {
         position: "fixed",
       },
-      "& .MuiMenuItem-root": {
-        "&:hover": {
-          color: "#0077FF",
-          "& .MuiListItemIcon-root": {
-            color: "#0077FF",
-          },
-        },
-      },
     }}
   >
-    <Menu.Item
-      to="/users"
-      primaryText="Utilisateur"
-      sx={{
-        background: "#0077FF",
-        margin: "20px 0",
-        fontWeight: "bold",
-        border: "2px solid #0077FF",
-        borderRadius: "10px",
-        padding: "10px 10px",
-        fontFamily: "Poppins",
-      }}
-      leftIcon={<People />}
-    />
-    <Menu.Item
-      to="/events"
-      primaryText="Evenement"
-      sx={{
-        background: "#0077FF",
-        margin: "10px 0",
-        fontWeight: "bold",
-        border: "2px solid #0077FF",
-        borderRadius: "10px",
-        padding: "10px 10px",
-        fontFamily: "Poppins",
-      }}
-      leftIcon={<Event />}
-    />
-    <Menu.Item
-      to="/contact"
-      primaryText="Message"
-      sx={{
-        background: "#0077FF",
-        margin: "20px 0",
-        fontWeight: "bold",
-        border: "2px solid #0077FF",
-        borderRadius: "10px",
-        padding: "10px 10px",
-        fontFamily: "Poppins",
-      }}
-      leftIcon={<Message />}
-    />
+    <CustomMenuItem to="/users" primaryText="Utilisateur" leftIcon={<People />} />
+    <CustomMenuItem to="/events" primaryText="Événement" leftIcon={<Event />} />
+    <CustomMenuItem to="/contact" primaryText="Message" leftIcon={<Message />} />
+    <CustomMenuItem to="/admins" primaryText="Administrateurs" leftIcon={<AdminPanelSettings />} />
   </Menu>
 );

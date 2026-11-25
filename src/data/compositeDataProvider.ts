@@ -1,5 +1,4 @@
-
-import { 
+import {
   DataProvider,
   GetListResult,
   GetOneResult,
@@ -11,11 +10,21 @@ import {
   DeleteResult,
   DeleteManyResult,
   RaRecord,
-  Identifier
+  Identifier,
+  GetListParams,
+  GetOneParams,
+  GetManyParams,
+  GetManyReferenceParams,
+  UpdateParams,
+  UpdateManyParams,
+  CreateParams,
+  DeleteParams,
+  DeleteManyParams
 } from 'react-admin';
 import { eventsDataProvider } from "./events-data-provider";
 import { userDataProvider } from "./users-data-provider";
 import { contactDataProvider } from "./contact-data-provider";
+import { adminDataProvider } from "./admins-data-provider";
 
 interface Event extends RaRecord {
   available_tickets: number;
@@ -48,135 +57,166 @@ interface CustomDataProvider extends DataProvider {
 }
 
 const compositeDataProvider: CustomDataProvider = {
-  getList: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<GetListResult<RecordType>> => {
-    let result;
+  getList: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetListParams
+  ): Promise<GetListResult<RecordType>> => {
     if (resource === "events") {
-      result = await eventsDataProvider.getList(resource, params) as GetListResult<Event>;
-    } else if (resource === "users") {
-      result = await userDataProvider.getList(params) as GetListResult<User>;
-    } else if (resource === "contact") {
-      result = await contactDataProvider.getList();
-    } else {
-      throw new Error(`Unknown resource: ${resource}`);
+      return await eventsDataProvider.getList(resource, params) as GetListResult<RecordType>;
     }
-    return result as GetListResult<RecordType>;
+    if (resource === "users") {
+      return await userDataProvider.getList(resource, params) as GetListResult<RecordType>;
+    }
+    if (resource === "admins") {
+      return await adminDataProvider.getList(resource, params) as GetListResult<RecordType>;
+    }
+    if (resource === "contact") {
+      // ✅ Correction : Remplacement de `any` par `unknown as DataProvider`
+      return await (contactDataProvider as unknown as DataProvider).getList(resource, params) as GetListResult<RecordType>;
+    }
+    throw new Error(`Unknown resource: ${resource}`);
   },
 
-
-  getOne: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<GetOneResult<RecordType>> => {
+  getOne: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetOneParams
+  ): Promise<GetOneResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.getOne(resource, params) as GetOneResult<Event>;
+      result = await eventsDataProvider.getOne(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.getOne(params) as GetOneResult<User>;
+      result = await userDataProvider.getOne(resource, params);
+    } else if (resource === "admins") {
+      result = await adminDataProvider.getOne(resource, params);
     } else if (resource === "contact") {
-      result = await contactDataProvider.getOne(params);
+      result = await (contactDataProvider as unknown as DataProvider).getOne(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    if (!result) {
-      throw new Error(`Record not found`);
-    }
+    if (!result) throw new Error(`Record not found`);
     return result as GetOneResult<RecordType>;
   },
 
-
-  getMany: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<GetManyResult<RecordType>> => {
+  getMany: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetManyParams
+  ): Promise<GetManyResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.getMany(resource, params) as GetManyResult<Event>;
+      result = await eventsDataProvider.getMany(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.getMany(resource, params) as GetManyResult<User>;
-    } else {
-      throw new Error(`Unknown resource: ${resource}`);
-
-    }
-    return result as unknown as GetManyResult<RecordType> || { data: [] };
-  },
-
-
-  getManyReference: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<GetManyReferenceResult<RecordType>> => {
-    let result;
-    if (resource === "events") {
-      result = await eventsDataProvider.getManyReference(resource, params) as GetManyReferenceResult<Event>;
-    } else if (resource === "users") {
-      result = await userDataProvider.getManyReference(resource, params) as GetManyReferenceResult<User>;
+      result = await userDataProvider.getMany(resource, params);
+    } else if (resource === "admins") {
+      const results = await Promise.all(params.ids.map(id => adminDataProvider.getOne(resource, { id })));
+      result = { data: results.map(r => r.data) };
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    return result as unknown as GetManyReferenceResult<RecordType> || { data: [], total: 0 };
+    return (result as GetManyResult<RecordType>) || { data: [] };
   },
 
-  update: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<UpdateResult<RecordType>> => {
+  getManyReference: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetManyReferenceParams
+  ): Promise<GetManyReferenceResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.update(resource, params) as UpdateResult<Event>;
+      result = await eventsDataProvider.getManyReference(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.update(resource, params) as UpdateResult<User>;
+      result = await userDataProvider.getManyReference(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    if (!result) {
-      throw new Error(`Update failed`);
-    }
-    return result as unknown as UpdateResult<RecordType>;
+    return (result as GetManyReferenceResult<RecordType>) || { data: [], total: 0 };
   },
 
-
-  updateMany: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<UpdateManyResult<RecordType>> => {
+  update: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: UpdateParams
+  ): Promise<UpdateResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.updateMany(resource, params) as UpdateManyResult<Event>;
+      result = await eventsDataProvider.update(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.updateMany(resource, params) as UpdateManyResult<User>;
+      result = await userDataProvider.update(resource, params);
+    } else if (resource === "admins") {
+      result = await adminDataProvider.update(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    return result as unknown as UpdateManyResult<RecordType> || { data: [] };
+    if (!result) throw new Error(`Update failed`);
+    return result as UpdateResult<RecordType>;
   },
 
-  create: async <RecordType extends Omit<RaRecord, "id"> = any>(resource: string, params: any): Promise<CreateResult<RecordType & { id: Identifier }>> => {
+  updateMany: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: UpdateManyParams
+  ): Promise<UpdateManyResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.create(resource, params) as CreateResult<Event>;
+      result = await eventsDataProvider.updateMany(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.create(resource, params) as CreateResult<User>;
+      result = await userDataProvider.updateMany(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    if (!result) {
-      throw new Error(`Create failed`);
-    }
-    return result as unknown as CreateResult<RecordType & { id: Identifier }>;
+    return (result as UpdateManyResult<RecordType>) || { data: [] };
   },
 
-  delete: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<DeleteResult<RecordType>> => {
+  create: async <RecordType extends Omit<RaRecord, "id"> = Omit<RaRecord, "id">>(
+    resource: string,
+    params: CreateParams
+  ): Promise<CreateResult<RecordType & { id: Identifier }>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.delete(resource, params) as DeleteResult<Event>;
+      result = await eventsDataProvider.create(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.delete(resource, params) as DeleteResult<User>;
+      result = await userDataProvider.create(resource, params);
+    } else if (resource === "admins") {
+      result = await adminDataProvider.create(resource, params);
+    } else {
+      throw new Error(`Unknown resource: ${resource}`);
+    }
+    if (!result) throw new Error(`Create failed`);
+    return result as CreateResult<RecordType & { id: Identifier }>;
+  },
+
+  delete: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: DeleteParams
+  ): Promise<DeleteResult<RecordType>> => {
+    let result;
+    if (resource === "events") {
+      result = await eventsDataProvider.delete(resource, params);
+    } else if (resource === "users") {
+      result = await userDataProvider.delete(resource, params);
+    } else if (resource === "admins") {
+      result = await adminDataProvider.delete(resource, params);
     } else if (resource === "contact") {
-      result = await contactDataProvider.delete(params);
+      // ✅ Correction : Remplacement de `any` par `unknown as DataProvider`
+      result = await (contactDataProvider as unknown as DataProvider).delete(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    if (!result) {
-      throw new Error(`Delete failed`);
-    }
+    if (!result) throw new Error(`Delete failed`);
     return result as DeleteResult<RecordType>;
   },
 
-  deleteMany: async <RecordType extends RaRecord = any>(resource: string, params: any): Promise<DeleteManyResult<RecordType>> => {
+  deleteMany: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: DeleteManyParams
+  ): Promise<DeleteManyResult<RecordType>> => {
     let result;
     if (resource === "events") {
-      result = await eventsDataProvider.deleteMany(resource, params) as DeleteManyResult<Event>;
+      result = await eventsDataProvider.deleteMany(resource, params);
     } else if (resource === "users") {
-      result = await userDataProvider.deleteMany(resource, params) as DeleteManyResult<User>;
+      result = await userDataProvider.deleteMany(resource, params);
+    } else if (resource === "admins") {
+      result = await adminDataProvider.deleteMany(resource, params);
     } else {
       throw new Error(`Unknown resource: ${resource}`);
     }
-    return result as unknown as DeleteManyResult<RecordType> || { data: [] };
+    return (result as DeleteManyResult<RecordType>) || { data: [] };
   },
 
   getTicketsForEvent: async (resource: string, params: GetTicketsParams): Promise<number> => {
@@ -187,5 +227,5 @@ const compositeDataProvider: CustomDataProvider = {
   },
 };
 
-export { compositeDataProvider };  export type { Event, User };
-
+export { compositeDataProvider };
+export type { Event, User };

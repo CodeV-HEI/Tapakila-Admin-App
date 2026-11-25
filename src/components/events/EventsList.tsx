@@ -1,59 +1,39 @@
-import { List, useListContext, TopToolbar, CreateButton } from "react-admin";
-import { Grid, Typography, Box } from "@mui/material";
+import { List, useListContext, TopToolbar, CreateButton, Pagination } from "react-admin";
+import { Grid, Typography, Box, Alert } from "@mui/material";
 import { EventCard } from "./EventCard";
 
 const ListActions = () => (
-    <TopToolbar>
-        <CreateButton />
-    </TopToolbar>
+  <TopToolbar>
+    <CreateButton />
+  </TopToolbar>
 );
 
 export const EventList = () => {
   return (
-    <List 
-      actions={<ListActions />}
-      sort={{ field: 'event_date', order: 'DESC' }}
-      perPage={25}
-    >
+    <List actions={<ListActions />} sort={{ field: 'event_date', order: 'DESC' }} perPage={25}>
       <EventListContent />
     </List>
   );
 };
 
 const EventListContent = () => {
-  const { data = [], isLoading } = useListContext();
+  const { data = [], isLoading, error } = useListContext();
 
-
-  if (isLoading) {
-    return (
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
-        <Typography>Chargement en cours...</Typography>
-      </Box>
-    );
-  }
-
+  if (isLoading) return <Box p={4}><Typography>Chargement...</Typography></Box>;
+  if (error) return <Alert severity="error">Erreur : {error.message}</Alert>;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const upcomingEvents = data.filter(event => {
-    const eventDate = new Date(event.event_date);
-    return eventDate >= today;
-  });
-
-  const pastEvents = data.filter(event => {
-    const eventDate = new Date(event.event_date);
-    return eventDate < today;
-  });
+  const upcomingEvents = data.filter(event => new Date(event.event_date) >= today);
+  const pastEvents = data.filter(event => new Date(event.event_date) < today);
 
   return (
-
     <Box sx={{ p: 2 }}>
       <Typography variant="h5" sx={{ mb: 3, color: '#2e7d32', fontWeight: 'bold' }}>
         Événements à venir ({upcomingEvents.length})
-
       </Typography>
-      
+
       {upcomingEvents.length > 0 ? (
         <Grid container spacing={2}>
           {upcomingEvents.map((event) => (
@@ -63,11 +43,8 @@ const EventListContent = () => {
           ))}
         </Grid>
       ) : (
-        <Typography variant="body1" sx={{ mb: 3 }}>
-          Aucun événement à venir pour le moment.
-        </Typography>
+        <Typography variant="body1" sx={{ mb: 3 }}>Aucun événement à venir.</Typography>
       )}
-
 
       {pastEvents.length > 0 && (
         <>
@@ -82,8 +59,9 @@ const EventListContent = () => {
             ))}
           </Grid>
         </>
-
       )}
+
+      <Pagination rowsPerPageOptions={[10, 25, 50]} />
     </Box>
   );
 };
